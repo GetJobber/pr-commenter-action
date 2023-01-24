@@ -27,7 +27,19 @@ function assembleCommentBody(snippetIds, commentConfig, templateVariables = {}) 
     commentConfig.get('header'),
     ...commentConfig.get('snippets').map((snippet) => {
       if (snippetIds.includes(snippet.get('id'))) {
-        return snippet.get('body');
+        let snippetBody = snippet.get('body');
+        core.info(`extracted header comment: Divya is testing`);
+        
+        if (snippet.get('header')) {
+          console.log(snippet.get('header'))
+          core.info(`extracted header comment:`);
+          snippetBody = snippet.get('header') + snippetBody;
+        }
+        if (snippet.get('footer')) {
+          core.info(`extracted footer comment:`);
+          snippetBody = snippetBody + snippet.get('footer');
+        }
+        return snippetBody;
       }
       return null;
     }),
