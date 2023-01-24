@@ -1,3 +1,4 @@
+const core = require('@actions/core');
 module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
