@@ -1,33 +1,52 @@
-const {
-  core,
-  github,
-  preloadActionModules,
-  resetActionMocks,
-  setGithubContext,
-} = require('./helpers/actions-toolkit');
+import { jest } from '@jest/globals';
 
 const fakePRNumber = 432;
+const mockCore = {
+  debug: jest.fn(),
+  getInput: jest.fn(),
+  info: jest.fn(),
+  warning: jest.fn(),
+};
+const mockContext = {
+  payload: { pull_request: { number: fakePRNumber } },
+  repo: {},
+  sha: undefined,
+};
+const mockGithub = {
+  getOctokit: jest.fn(() => ({ name: 'fake-client' })),
+};
+const localGithub = {
+  createComment: jest.fn(),
+  deleteComment: jest.fn(),
+  editComment: jest.fn(),
+  getChangedFiles: jest.fn(),
+  getComments: jest.fn(),
+  getFileContent: jest.fn(),
+};
 
-jest.mock('../lib/github');
-const localGithub = require('../lib/github');
-const comment = require('../lib/comment');
+jest.unstable_mockModule('@actions/core', () => ({
+  debug: mockCore.debug,
+  getInput: mockCore.getInput,
+  info: mockCore.info,
+  warning: mockCore.warning,
+}));
 
-let run;
+jest.unstable_mockModule('@actions/github', () => ({
+  context: mockContext,
+  getOctokit: mockGithub.getOctokit,
+}));
+
+jest.unstable_mockModule('../lib/github.mjs', () => localGithub);
+
+const comment = await import('../lib/comment.mjs');
+const { run } = await import('../lib/run.mjs');
 
 beforeEach(() => {
-  resetActionMocks();
-  setGithubContext({
-    payload: { pull_request: { number: fakePRNumber } },
-    repo: {},
-    sha: undefined,
-  });
-});
-
-beforeAll(async () => {
-  await preloadActionModules();
-  // eslint-disable-next-line global-require
-  ({ run } = require('../lib/run'));
-  await Promise.resolve();
+  jest.clearAllMocks();
+  mockContext.payload = { pull_request: { number: fakePRNumber } };
+  mockContext.repo = {};
+  mockContext.sha = undefined;
+  mockGithub.getOctokit.mockImplementation(() => ({ name: 'fake-client' }));
 });
 
 describe('run', () => {
@@ -54,7 +73,7 @@ describe('run', () => {
       + '      files:\n'
       + '        - static/**.css\n';
 
-    core.getInput.mockImplementation((argument) => {
+    mockCore.getInput.mockImplementation((argument) => {
       if (argument === 'github-token') {
         return fakeToken;
       }
@@ -94,8 +113,8 @@ describe('run', () => {
 
     await run();
 
-    expect(github.getOctokit).toHaveBeenCalledTimes(1);
-    expect(github.getOctokit.mock.calls[0][0]).toEqual(fakeToken);
+    expect(mockGithub.getOctokit).toHaveBeenCalledTimes(1);
+    expect(mockGithub.getOctokit.mock.calls[0][0]).toEqual(fakeToken);
 
     expect(localGithub.getChangedFiles).toHaveBeenCalledTimes(1);
     expect(localGithub.getChangedFiles).toHaveBeenCalledWith({ name: 'fake-client' }, fakePRNumber);

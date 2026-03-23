@@ -2,10 +2,10 @@
   "name": "pr-commenter-action",
   "version": "2.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.mjs",
   "scripts": {
-    "build": "ncc build lib/index.js --license licenses.txt",
-    "lint": "eslint lib/**/*.js test/**/*.js",
+    "build": "ncc build lib/index.mjs --license licenses.txt",
+    "lint": "eslint lib/**/*.mjs test/**/*.mjs",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js"
   },
   "repository": {

@@ -1,14 +1,19 @@
-const { preloadActionModules, resetActionMocks } = require('./helpers/actions-toolkit');
+import { jest } from '@jest/globals';
 
-let snippets;
+const mockCore = {
+  debug: jest.fn(),
+  info: jest.fn(),
+};
+
+jest.unstable_mockModule('@actions/core', () => ({
+  debug: mockCore.debug,
+  info: mockCore.info,
+}));
+
+const snippets = await import('../lib/snippets.mjs');
 
 beforeEach(() => {
-  resetActionMocks();
-});
-
-beforeAll(async () => {
-  await preloadActionModules();
-  snippets = await import('../lib/snippets');
+  jest.clearAllMocks();
 });
 
 describe('getMatchingSnippetIds', () => {

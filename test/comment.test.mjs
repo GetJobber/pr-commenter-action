@@ -1,4 +1,4 @@
-const comment = require('../lib/comment');
+import * as comment from '../lib/comment.mjs';
 
 describe('comment', () => {
   describe('assembleCommentBody', () => {
