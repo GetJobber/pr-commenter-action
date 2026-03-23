@@ -1,6 +1,15 @@
-const snippets = require('../lib/snippets');
+const { preloadActionModules, resetActionMocks } = require('./helpers/actions-toolkit');
 
-jest.mock('@actions/core');
+let snippets;
+
+beforeEach(() => {
+  resetActionMocks();
+});
+
+beforeAll(async () => {
+  await preloadActionModules();
+  snippets = await import('../lib/snippets');
+});
 
 describe('getMatchingSnippetIds', () => {
   test('no matches', () => {

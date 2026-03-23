@@ -1,20 +1,34 @@
-const core = import('@actions/core');
-const github = import('@actions/github');
-const localGithub = require('../lib/github');
-const comment = require('../lib/comment');
-
-const { run } = require('../lib/run');
+const {
+  core,
+  github,
+  preloadActionModules,
+  resetActionMocks,
+  setGithubContext,
+} = require('./helpers/actions-toolkit');
 
 const fakePRNumber = 432;
 
-jest.mock('@actions/core');
-jest.mock('@actions/github', () => ({
-  ...jest.requireActual('@actions/github'),
-  getOctokit: jest.fn().mockImplementation(() => ({ name: 'fake-client' })),
-  context: { payload: { pull_request: { number: fakePRNumber } } },
-}));
-
 jest.mock('../lib/github');
+const localGithub = require('../lib/github');
+const comment = require('../lib/comment');
+
+let run;
+
+beforeEach(() => {
+  resetActionMocks();
+  setGithubContext({
+    payload: { pull_request: { number: fakePRNumber } },
+    repo: {},
+    sha: undefined,
+  });
+});
+
+beforeAll(async () => {
+  await preloadActionModules();
+  // eslint-disable-next-line global-require
+  ({ run } = require('../lib/run'));
+  await Promise.resolve();
+});
 
 describe('run', () => {
   test('fully-mocked recreating a comment happy path', async () => {
