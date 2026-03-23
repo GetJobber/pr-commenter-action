@@ -67,6 +67,12 @@ Auth token used to manage issues or pull requests.
 
 To reference a config file in another repo use the format: `<owner>/<repo>@<ref>:<path>`, for example `someuser/my-repo@v1:.github/pr-commenter.yml`. NOTE: make sure that "my-repo" is public and has "Workflow permissions" allowing files to be read.
 
+#### `comment-key`
+
+An optional stable key that scopes which previous comment this action run should update or recreate. If omitted, the action behaves as before and uses the newest previous comment created by PR Commenter. If you use this action multiple times in the same workflow and want separate comments, pass a unique `comment-key` for each invocation.
+
+**Required**: false
+
 ### Configuration file
 
 #### `comment.on-create`

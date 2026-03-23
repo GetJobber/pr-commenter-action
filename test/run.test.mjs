@@ -136,4 +136,82 @@ describe('run', () => {
 
     expect(localGithub.editComment).toHaveBeenCalledTimes(0);
   });
+
+  test('comment-key scopes which previous comment gets updated', async () => {
+    const fakeToken = 'github-token-123456';
+    const fakeConfigPath = 'foo/graphql-schema-commenter.yml';
+    const fakeCommentKey = 'graphql-schema-check';
+    const fakeConfig = 'comment:\n'
+      + '  on-update: recreate\n'
+      + '  header: Hello {{name}}!\n'
+      + '  footer: Bye!\n'
+      + '  snippets:\n'
+      + '    - id: snippet1\n'
+      + '      body: This is snippet 1\n'
+      + '      files:\n'
+      + '        - any: ["*.md"]\n'
+      + '          all: ["!CONTRIBUTING.md"]\n'
+      + '    - id: snippet3\n'
+      + '      body: This is snippet 3\n'
+      + '      files:\n'
+      + '        - static/**.css\n';
+
+    mockCore.getInput.mockImplementation((argument) => {
+      if (argument === 'github-token') {
+        return fakeToken;
+      }
+
+      if (argument === 'config-file') {
+        return fakeConfigPath;
+      }
+
+      if (argument === 'comment-key') {
+        return fakeCommentKey;
+      }
+
+      if (argument === 'template-variables') {
+        return '{"name": "Bob"}';
+      }
+
+      return null;
+    });
+
+    const unrelatedComment = {
+      created_at: '2020-01-04',
+      body: `${comment.commentMetadata(['snippet1'])}\n\n${comment.commentKeyMetadata('high-risk-code-check')}`,
+      url: 'unrelated-comment-url',
+    };
+    const matchingComment = {
+      created_at: '2020-01-03',
+      body: `${comment.commentMetadata(['snippet3'])}\n\n${comment.commentKeyMetadata(fakeCommentKey)}`,
+      url: 'matching-comment-url',
+    };
+
+    const existingPRComments = [
+      unrelatedComment,
+      matchingComment,
+      { created_at: '2020-01-01' },
+    ];
+
+    const commentBody = `${'Hello Bob!\n\n'
+      + 'This is snippet 1\n\n'
+      + 'This is snippet 3\n\n'
+    + 'Bye!\n\n'}${
+      comment.commentMetadata(['snippet1', 'snippet3'])}\n\n${
+      comment.commentKeyMetadata(fakeCommentKey)}`;
+
+    localGithub.getChangedFiles.mockResolvedValue(['static/foo.html', 'README.md', 'static/foo.css']);
+    localGithub.getFileContent.mockResolvedValue(fakeConfig);
+    localGithub.getComments.mockResolvedValue(existingPRComments);
+
+    await run();
+
+    expect(localGithub.deleteComment).toHaveBeenCalledTimes(1);
+    expect(localGithub.deleteComment).toHaveBeenCalledWith({ name: 'fake-client' }, matchingComment);
+
+    expect(localGithub.createComment).toHaveBeenCalledTimes(1);
+    expect(localGithub.createComment).toHaveBeenCalledWith({ name: 'fake-client' }, fakePRNumber, commentBody);
+
+    expect(localGithub.editComment).toHaveBeenCalledTimes(0);
+  });
 });

@@ -43492,6 +43492,10 @@ function commentMetadata(snippetIds) {
   return `<!-- pr-commenter-metadata: ${snippetIds.join(',')} -->`;
 }
 
+function commentKeyMetadata(commentKey) {
+  return `<!-- pr-commenter-key: ${commentKey} -->`;
+}
+
 function extractCommentMetadata(commentBody) {
   // snippet id regex plus a comma
   const regex = /<!-- pr-commenter-metadata: ([A-Za-z0-9\-_,]*) -->/;
@@ -43503,7 +43507,18 @@ function extractCommentMetadata(commentBody) {
   return null;
 }
 
-function assembleCommentBody(snippetIds, commentConfig, templateVariables = {}) {
+function extractCommentKey(commentBody) {
+  const regex = /<!-- pr-commenter-key: ([^\r\n]*?) -->/;
+  const match = regex.exec(commentBody);
+
+  if (match) {
+    const commentKey = match[1].trim();
+    return commentKey || null;
+  }
+  return null;
+}
+
+function assembleCommentBody(snippetIds, commentConfig, templateVariables = {}, commentKey = null) {
   let strings = [
     commentConfig.get('header'),
     ...commentConfig.get('snippets').map((snippet) => {
@@ -43515,6 +43530,10 @@ function assembleCommentBody(snippetIds, commentConfig, templateVariables = {}) 
     commentConfig.get('footer'),
     commentMetadata(snippetIds),
   ];
+
+  if (commentKey) {
+    strings.push(commentKeyMetadata(commentKey));
+  }
 
   strings = strings.filter((s) => !!s);
 
@@ -43663,6 +43682,7 @@ async function getComments(client, prNumber) {
 async function run() {
   const token = getInput('github-token', { required: true });
   const configPath = getInput('config-file', { required: true });
+  const commentKey = getInput('comment-key', { required: false }) || null;
   const templateVariablesJSONString = getInput('template-variables', { required: false });
 
   const prNumber = getPrNumber();
@@ -43677,7 +43697,13 @@ async function run() {
 
   core_debug(`fetching changed files for pr #${prNumber}`);
   const changedFiles = await getChangedFiles(client, prNumber);
-  const previousComment = await getPreviousPRComment(client, prNumber);
+  const previousComment = await getPreviousPRComment(client, prNumber, commentKey);
+
+  if (commentKey) {
+    core_debug(`Input comment-key was passed: ${commentKey}`);
+  } else {
+    core_debug('Input comment-key was not passed');
+  }
 
   let templateVariables = {};
   if (templateVariablesJSONString) {
@@ -43701,7 +43727,7 @@ async function run() {
     await deleteComment(client, previousComment);
   }
 
-  const commentBody = assembleCommentBody(snippetIds, commentConfig, templateVariables);
+  const commentBody = assembleCommentBody(snippetIds, commentConfig, templateVariables, commentKey);
 
   if (shouldEditPreviousComment(previousComment, snippetIds, commentConfig)) {
     info('updating previous comment');
@@ -43732,19 +43758,32 @@ async function getCommentConfig(client, configurationPath, templateVariables) {
   return configMap;
 }
 
-async function getPreviousPRComment(client, prNumber) {
+async function getPreviousPRComment(client, prNumber, commentKey = null) {
   const comments = await getComments(client, prNumber);
   core_debug(`there are ${comments.length} comments on the PR #${prNumber}`);
 
   const newestFirst = (c1, c2) => c2.created_at.localeCompare(c1.created_at);
   const sortedComments = comments.sort(newestFirst);
-  const previousComment = sortedComments.find((c) => extractCommentMetadata(c.body) !== null);
+  const previousComment = sortedComments.find((c) => {
+    if (extractCommentMetadata(c.body) === null) {
+      return false;
+    }
+
+    if (!commentKey) {
+      return true;
+    }
+
+    return extractCommentKey(c.body) === commentKey;
+  });
 
   if (previousComment) {
     const previousSnippetIds = extractCommentMetadata(previousComment.body);
 
     info(`found previous comment made by pr-commenter: ${previousComment.url}`);
     info(`extracted snippet ids from previous comment: ${previousSnippetIds.join(', ')}`);
+    if (commentKey) {
+      info(`matched previous comment using comment-key: ${commentKey}`);
+    }
 
     return previousComment;
   }
