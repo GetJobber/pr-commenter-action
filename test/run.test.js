@@ -1,5 +1,5 @@
-const core = require('@actions/core');
-const github = require('@actions/github');
+const core = import('@actions/core');
+const github = import('@actions/github');
 const localGithub = require('../lib/github');
 const comment = require('../lib/comment');
 
