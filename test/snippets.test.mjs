@@ -1,6 +1,20 @@
-const snippets = require('../lib/snippets');
+import { jest } from '@jest/globals';
 
-jest.mock('@actions/core');
+const mockCore = {
+  debug: jest.fn(),
+  info: jest.fn(),
+};
+
+jest.unstable_mockModule('@actions/core', () => ({
+  debug: mockCore.debug,
+  info: mockCore.info,
+}));
+
+const snippets = await import('../lib/snippets.mjs');
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
 describe('getMatchingSnippetIds', () => {
   test('no matches', () => {

@@ -1,4 +1,4 @@
-const comment = require('../lib/comment');
+import * as comment from '../lib/comment.mjs';
 
 describe('comment', () => {
   describe('assembleCommentBody', () => {
@@ -131,6 +131,27 @@ describe('comment', () => {
         + '<!-- pr-commenter-metadata: snippet1 -->',
       );
     });
+
+    test('includes comment key metadata when provided', () => {
+      const commentConfig = new Map([
+        ['header', 'hello'],
+        ['footer', 'bye'],
+        ['snippets', [
+          new Map([
+            ['id', 'snippet1'],
+            ['body', 'A list:\n- one\n- two\n- three'],
+          ]),
+        ]],
+      ]);
+
+      expect(comment.assembleCommentBody(['snippet1'], commentConfig, {}, 'graphql-schema-check')).toEqual(
+        'hello\n\n'
+        + 'A list:\n- one\n- two\n- three\n\n'
+        + 'bye\n\n'
+        + '<!-- pr-commenter-metadata: snippet1 -->\n\n'
+        + '<!-- pr-commenter-key: graphql-schema-check -->',
+      );
+    });
   });
 
   describe('extractCommentMetadata', () => {
@@ -181,6 +202,22 @@ describe('comment', () => {
       const expectedResult = null;
 
       expect(comment.extractCommentMetadata(commentBody)).toEqual(expectedResult);
+    });
+  });
+
+  describe('extractCommentKey', () => {
+    test('finds a comment key in the middle of a comment', () => {
+      const commentBody = 'hello\nthere\n<!-- pr-commenter-key: GraphQL Schema Check -->\nblabla';
+      const expectedResult = 'GraphQL Schema Check';
+
+      expect(comment.extractCommentKey(commentBody)).toEqual(expectedResult);
+    });
+
+    test('returns null when the comment key is missing', () => {
+      const commentBody = 'hello\nthere\n<!-- pr-commenter-metadata: snippet-abc -->\nblabla';
+      const expectedResult = null;
+
+      expect(comment.extractCommentKey(commentBody)).toEqual(expectedResult);
     });
   });
 

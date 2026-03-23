@@ -1,4 +1,4 @@
-const config = require('../lib/config');
+import * as config from '../lib/config.mjs';
 
 describe('validateCommentConfig', () => {
   const snippet1Object = {
