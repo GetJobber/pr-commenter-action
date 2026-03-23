@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.0.0 (2026-03-23)
+
+- Bump Node version to 24.
+
 ## 1.5.1 (2023-10-25)
 
 - Bump Node version to 20.
